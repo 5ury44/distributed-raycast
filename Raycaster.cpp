@@ -24,7 +24,7 @@ bool Raycaster::initialize() {
         return false;
     }
     
-    window = SDL_CreateWindow("Raycaster Game with Textures",
+    window = SDL_CreateWindow("Raycaster",
                             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                             SCREEN_WIDTH, SCREEN_HEIGHT,
                             SDL_WINDOW_SHOWN);
@@ -122,8 +122,8 @@ void Raycaster::handleInput() {
 void Raycaster::castRay(double rayAngle, int /*column*/, double& distance, int& wallType, double& wallX) {
     double rayX = player.x;
     double rayY = player.y;
-    double rayDirX = cos(rayAngle);
-    double rayDirY = sin(rayAngle);
+    double rayDirX = cos(rayAngle) * cos(player.pitch);
+    double rayDirY = sin(rayAngle) * cos(player.pitch);
     
     double deltaDistX = (rayDirX == 0) ? 1e30 : std::abs(1.0 / rayDirX);
     double deltaDistY = (rayDirY == 0) ? 1e30 : std::abs(1.0 / rayDirY);
@@ -230,9 +230,10 @@ void Raycaster::renderWallsThreaded() {
         double rayAngle = player.angle - FOV/2 + (x * FOV / SCREEN_WIDTH);
         castRay(rayAngle, x, distances[x], wallTypes[x], wallXs[x]);
         
-        // Calculate wall height
+        // Calculate wall height with pitch adjustment
         int wallHeight = (int)(SCREEN_HEIGHT / distances[x]);
-        wallTops[x] = (SCREEN_HEIGHT - wallHeight) / 2;
+        int pitchOffset = (int)(SCREEN_HEIGHT * player.pitch / (M_PI/2));
+        wallTops[x] = (SCREEN_HEIGHT - wallHeight) / 2 - pitchOffset;
         wallBottoms[x] = wallTops[x] + wallHeight;
     }
     
@@ -300,8 +301,8 @@ void Raycaster::renderWallColumn(int x, double distance, int wallType, double wa
         double rayAngle = player.angle - FOV/2 + (x * FOV / SCREEN_WIDTH);
         
         for (int y = wallBottom; y < SCREEN_HEIGHT; y++) {
-            // Calculate the distance to the floor at this screen Y coordinate
-            double floorDistance = (SCREEN_HEIGHT / 2.0) / (y - SCREEN_HEIGHT / 2.0);
+            // Calculate the distance to the floor at this screen Y coordinate with pitch
+            double floorDistance = (SCREEN_HEIGHT / 2.0) / ((y - SCREEN_HEIGHT / 2.0) * cos(player.pitch) + SCREEN_HEIGHT / 2.0 * sin(player.pitch));
             
             // Calculate world position of floor point
             double floorX = player.x + cos(rayAngle) * floorDistance;
@@ -375,9 +376,13 @@ void Raycaster::handleMouseInput() {
     
     if (lastMouseX != 0) {
         int deltaX = mouseX - lastMouseX;
+        int deltaY = mouseY - (SCREEN_HEIGHT / 2);
         
-        // Horizontal rotation (yaw) - mouse X movement only
+        // Horizontal rotation (yaw) - mouse X movement
         player.rotate(deltaX * mouseSensitivity);
+        
+        // Vertical rotation (pitch) - mouse Y movement
+        player.pitchUp(-deltaY * mouseSensitivity);
         
         // Reset mouse to center to prevent cursor from leaving window
         SDL_WarpMouseInWindow(window, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
