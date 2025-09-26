@@ -164,6 +164,12 @@ int main(int argc, char** argv) {
         workerId = static_cast<int>(hasher(workerIdStr) % 1000) + 1;
     }
     
+    // Get server address from environment variable
+    const char* envServerAddress = std::getenv("WORKER_SERVER_ADDRESS");
+    if (envServerAddress != nullptr) {
+        serverAddress = envServerAddress;
+    }
+    
     if (argc > 1) {
         workerId = std::atoi(argv[1]);
     }

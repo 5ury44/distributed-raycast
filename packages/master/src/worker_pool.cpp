@@ -42,7 +42,10 @@ bool WorkerConnection::IsHealthy() {
     auto time_since_last_check = std::chrono::duration_cast<std::chrono::seconds>(
         now - last_health_check_);
     
-    if (time_since_last_check.count() > 30) { // 30 seconds
+    const char* healthCheckInterval = std::getenv("HEALTH_CHECK_INTERVAL_SECONDS");
+    int intervalSeconds = healthCheckInterval ? std::atoi(healthCheckInterval) : 30;
+    
+    if (time_since_last_check.count() > intervalSeconds) {
         return PerformHealthCheck();
     }
     
@@ -61,7 +64,9 @@ bool WorkerConnection::PerformHealthCheck() {
     
     try {
         grpc::ClientContext context;
-        context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(5));
+        const char* healthCheckTimeout = std::getenv("HEALTH_CHECK_TIMEOUT_SECONDS");
+        int timeoutSeconds = healthCheckTimeout ? std::atoi(healthCheckTimeout) : 5;
+        context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(timeoutSeconds));
         
         RaycastWorker::StatusRequest request;
         RaycastWorker::WorkerStatus response;
@@ -120,7 +125,9 @@ grpc::Status WorkerConnection::ProcessRenderRequest(const RaycastWorker::RenderR
     
     try {
         grpc::ClientContext context;
-        context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(30));
+        const char* requestTimeout = std::getenv("REQUEST_TIMEOUT_SECONDS");
+        int timeoutSeconds = requestTimeout ? std::atoi(requestTimeout) : 30;
+        context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(timeoutSeconds));
         
         auto start_time = std::chrono::high_resolution_clock::now();
         IncrementActiveJobs();
@@ -157,7 +164,9 @@ grpc::Status WorkerConnection::GetWorkerStatus(const RaycastWorker::StatusReques
     
     try {
         grpc::ClientContext context;
-        context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(5));
+        const char* healthCheckTimeout = std::getenv("HEALTH_CHECK_TIMEOUT_SECONDS");
+        int timeoutSeconds = healthCheckTimeout ? std::atoi(healthCheckTimeout) : 5;
+        context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(timeoutSeconds));
         
         auto status = stub_->GetWorkerStatus(&context, *request, response);
         
@@ -344,7 +353,9 @@ std::vector<std::string> WorkerPool::GetWorkerEndpoints() {
     // For now, use hardcoded endpoints based on the service name
     // In a real implementation, you would use Kubernetes API or DNS discovery
     std::stringstream ss;
-    ss << worker_service_name_ << "." << worker_namespace_ << ".svc.cluster.local:50051";
+    const char* port = std::getenv("WORKER_PORT");
+    std::string workerPort = port ? port : "50051";
+    ss << worker_service_name_ << "." << worker_namespace_ << ".svc.cluster.local:" << workerPort;
     endpoints.push_back(ss.str());
     
     // You could also add individual pod endpoints for more granular load balancing

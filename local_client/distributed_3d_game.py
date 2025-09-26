@@ -13,6 +13,10 @@ import pygame
 import math
 import queue
 from concurrent.futures import ThreadPoolExecutor
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add the parent directory to the Python path to import generated protobuf files
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'packages', 'worker'))
@@ -22,20 +26,21 @@ import worker_service_pb2_grpc as worker_grpc_pb2
 
 class Distributed3DCubeGame:
     def __init__(self):
-        self.worker_endpoint = "a96e068574f334ddcba0b531d43218dd-1184492011.us-west-2.elb.amazonaws.com:50051"
+        # Load configuration from environment variables
+        self.worker_endpoint = os.getenv('WORKER_ENDPOINT', 'localhost:50051')
         
         # Game state
         self.player_x = 8.0
         self.player_y = 8.0
         self.player_angle = 0.0
         self.player_pitch = 0.0
-        self.move_speed = 0.1
-        self.rot_speed = 0.05
+        self.move_speed = float(os.getenv('MOVE_SPEED', '0.1'))
+        self.rot_speed = float(os.getenv('ROTATION_SPEED', '0.05'))
         
         # Display settings
-        self.screen_width = 1024
-        self.screen_height = 768
-        self.fov = 60.0
+        self.screen_width = int(os.getenv('SCREEN_WIDTH', '1024'))
+        self.screen_height = int(os.getenv('SCREEN_HEIGHT', '768'))
+        self.fov = float(os.getenv('FOV', '60.0'))
         
         # 3D cube world - define actual 3D cubes in the world
         self.cubes = [
@@ -69,6 +74,10 @@ class Distributed3DCubeGame:
         self.running = True
         self.worker_threads = []
         
+        # Load additional configuration
+        self.max_worker_connections = int(os.getenv('MAX_WORKER_CONNECTIONS', '3'))
+        self.fps_limit = int(os.getenv('FPS_LIMIT', '60'))
+        
         # Pygame setup
         pygame.init()
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
@@ -92,7 +101,7 @@ class Distributed3DCubeGame:
         """Connect to distributed workers"""
         try:
             # Create multiple connections for load balancing
-            for i in range(3):  # Create 3 connections for load balancing
+            for i in range(self.max_worker_connections):  # Use configurable number of connections
                 channel = grpc.insecure_channel(self.worker_endpoint)
                 worker_stub = worker_grpc_pb2.WorkerServiceStub(channel)
                 self.worker_stubs.append(worker_stub)
@@ -592,7 +601,7 @@ class Distributed3DCubeGame:
                     self.last_fps_time = now
                 
                 # Limit FPS
-                self.clock.tick(60)
+                self.clock.tick(self.fps_limit)
                 
         except KeyboardInterrupt:
             pass
