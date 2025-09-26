@@ -1,0 +1,67 @@
+// packages/worker/proto/worker_service.proto
+syntax = "proto3";
+
+package RaycastWorker;
+
+service WorkerService {
+    rpc ProcessRenderRequest(RenderRequest) returns (RenderResponse);
+    rpc GetWorkerStatus(StatusRequest) returns (WorkerStatus);
+}
+
+message Player {
+    double x = 1;
+    double y = 2;
+    double angle = 3;
+    double pitch = 4;
+    string id = 5;
+    int64 timestamp = 6;
+}
+
+message RenderRequest {
+    string request_id = 1;
+    string player_id = 2;
+    Player player = 3;
+    int32 screen_width = 4;
+    int32 screen_height = 5;
+    double fov = 6;
+    int32 start_column = 7;
+    int32 end_column = 8;
+    repeated int32 map = 9;
+    int32 map_width = 10;
+    int32 map_height = 11;
+    int64 timestamp = 12;
+}
+
+message RaycastResult {
+    int32 column = 1;
+    double distance = 2;
+    int32 wall_type = 3;
+    double wall_x = 4;
+    int32 wall_top = 5;
+    int32 wall_bottom = 6;
+    uint32 r = 7;
+    uint32 g = 8;
+    uint32 b = 9;
+}
+
+message RenderResponse {
+    string request_id = 1;
+    string player_id = 2;
+    repeated RaycastResult results = 3;
+    int32 worker_id = 4;
+    int64 timestamp = 5;
+    int64 processing_time_ms = 6;
+}
+
+message StatusRequest {
+    // Empty for now
+}
+
+message WorkerStatus {
+    int32 worker_id = 1;
+    string status = 2;
+    int32 active_jobs = 3;
+    int32 total_jobs_processed = 4;
+    double average_processing_time_ms = 5;
+    int64 last_heartbeat = 6;
+}

@@ -1,0 +1,82 @@
+// packages/master/proto/master_service.proto
+syntax = "proto3";
+
+package RaycastMaster;
+
+import "google/protobuf/timestamp.proto";
+
+service MasterService {
+    rpc ProcessRaycastRequest(RaycastRequest) returns (RaycastResponse);
+    rpc GetMasterStatus(StatusRequest) returns (MasterStatus);
+}
+
+message Player {
+    double x = 1;
+    double y = 2;
+    double angle = 3;
+    double pitch = 4;
+    string id = 5;
+    int64 timestamp = 6;
+}
+
+message RaycastRequest {
+    string request_id = 1;
+    string client_id = 2;
+    Player player = 3;
+    int32 screen_width = 4;
+    int32 screen_height = 5;
+    double fov = 6;
+    int32 start_column = 7;
+    int32 end_column = 8;
+    repeated int32 map = 9;
+    int32 map_width = 10;
+    int32 map_height = 11;
+    int64 timestamp = 12;
+}
+
+message RaycastResult {
+    int32 column = 1;
+    double distance = 2;
+    int32 wall_type = 3;
+    double wall_x = 4;
+    int32 wall_top = 5;
+    int32 wall_bottom = 6;
+    uint32 r = 7;
+    uint32 g = 8;
+    uint32 b = 9;
+}
+
+message RaycastResponse {
+    string request_id = 1;
+    string client_id = 2;
+    repeated RaycastResult results = 3;
+    int32 worker_id = 4;
+    int64 timestamp = 5;
+    int64 processing_time_ms = 6;
+    string worker_endpoint = 7;
+    bool success = 8;
+    string error_message = 9;
+}
+
+message StatusRequest {
+    // Empty for now
+}
+
+message MasterStatus {
+    int32 total_workers = 1;
+    int32 active_workers = 2;
+    int32 total_requests_processed = 3;
+    double average_response_time_ms = 4;
+    repeated WorkerInfo workers = 5;
+    int64 timestamp = 6;
+}
+
+message WorkerInfo {
+    string endpoint = 1;
+    int32 worker_id = 2;
+    string status = 3;
+    int32 active_jobs = 4;
+    int32 total_jobs_processed = 5;
+    double average_processing_time_ms = 6;
+    int64 last_heartbeat = 7;
+}

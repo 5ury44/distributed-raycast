@@ -1,0 +1,33 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: raycast-cluster
+  region: us-west-2
+  version: "1.28"
+
+nodeGroups:
+  - name: raycast-workers
+    instanceType: t3.medium
+    desiredCapacity: 3
+    minSize: 2
+    maxSize: 10
+    ssh:
+      allow: true
+    iam:
+      withAddonPolicies:
+        imageBuilder: true
+        autoScaler: true
+        externalDNS: true
+        certManager: true
+        appMesh: true
+        ebs: true
+        fsx: true
+        efs: true
+        awsLoadBalancerController: true
+
+addons:
+  - name: vpc-cni
+  - name: coredns
+  - name: kube-proxy
+  - name: aws-ebs-csi-driver
